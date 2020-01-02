@@ -614,6 +614,15 @@ bool QHttpNetworkConnectionChannel::ensureConnection()
                 socket->setProperty("_q_user-agent", value);
         }
 #endif
+        // Tesla SW-206888
+        QVariant bindVariant(connection->property("_bind_to"));
+        if (!bindVariant.isNull()) {
+            QTcpSocket* tcpSocket = qobject_cast<QTcpSocket*>(socket);
+            if (tcpSocket) {
+                tcpSocket->bind(QHostAddress(bindVariant.toString()));
+            }
+        }
+
         if (ssl) {
 #ifndef QT_NO_OPENSSL
             QSslSocket *sslSocket = qobject_cast<QSslSocket*>(socket);

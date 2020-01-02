@@ -60,6 +60,9 @@ public:
     explicit QTcpSocket(QObject *parent = 0);
     virtual ~QTcpSocket();
 
+    // Tesla SW-206888
+    bool bind(const QHostAddress& addr);
+
 protected:
     QTcpSocket(QTcpSocketPrivate &dd, QObject *parent = 0);
 

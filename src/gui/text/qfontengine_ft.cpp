@@ -1916,7 +1916,7 @@ QFontEngineFT::QGlyphSet::~QGlyphSet()
 void QFontEngineFT::QGlyphSet::clear()
 {
     if (fast_glyph_count > 0) {
-        for (int i = 0; i < 256; ++i) {
+        for (int i = 0; i < QT_MAX_FAST_GLYPH_COUNT; ++i) {
             if (fast_glyph_data[i]) {
                 delete fast_glyph_data[i];
                 fast_glyph_data[i] = 0;

@@ -855,7 +855,7 @@ void QAbstractSocketPrivate::startConnectingByName(const QString &host)
 
     connectTimeElapsed = 0;
 
-    if (initSocketLayer(QAbstractSocket::UnknownNetworkLayerProtocol)) {
+    if (cachedSocketDescriptor != -1 || initSocketLayer(QAbstractSocket::UnknownNetworkLayerProtocol)) {
         if (socketEngine->connectToHostByName(host, port) ||
             socketEngine->state() == QAbstractSocket::ConnectingState) {
             cachedSocketDescriptor = socketEngine->socketDescriptor();
@@ -997,7 +997,7 @@ void QAbstractSocketPrivate::_q_connectToNextAddress()
         }
 #endif
 
-        if (!initSocketLayer(host.protocol())) {
+        if (cachedSocketDescriptor == -1 && !initSocketLayer(host.protocol())) {
             // hope that the next address is better
 #if defined(QABSTRACTSOCKET_DEBUG)
             qDebug("QAbstractSocketPrivate::_q_connectToNextAddress(), failed to initialize sock layer");
@@ -1013,9 +1013,6 @@ void QAbstractSocketPrivate::_q_connectToNextAddress()
             fetchConnectionParameters();
             return;
         }
-
-        // cache the socket descriptor even if we're not fully connected yet
-        cachedSocketDescriptor = socketEngine->socketDescriptor();
 
         // Check that we're in delayed connection state. If not, try
         // the next address

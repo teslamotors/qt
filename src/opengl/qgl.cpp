@@ -43,6 +43,7 @@
 #include "qplatformdefs.h"
 #include "qgl.h"
 #include <qdebug.h>
+#include <syslog.h>
 
 #if defined(Q_WS_X11)
 #include "private/qt_x11_p.h"
@@ -1736,7 +1737,8 @@ void QGLContextPrivate::init(QPaintDevice *dev, const QGLFormat &format)
     default_fbo = 0;
     active_engine = 0;
     workaround_needsFullClearOnEveryFrame = false;
-    workaround_brokenFBOReadBack = false;
+    syslog(LOG_INFO, "enable workaround_brokenFBOReadBack");
+    workaround_brokenFBOReadBack = true;
     workaround_brokenTexSubImage = false;
     workaroundsCached = false;
 

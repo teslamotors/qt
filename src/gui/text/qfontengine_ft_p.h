@@ -72,6 +72,10 @@
 
 #include <harfbuzz-shaper.h>
 
+#if !defined(QT_MAX_FAST_GLYPH_COUNT)
+#  define QT_MAX_FAST_GLYPH_COUNT 512
+#endif
+
 QT_BEGIN_NAMESPACE
 
 class QFontEngineFTRawFont;
@@ -194,14 +198,14 @@ public:
         void removeGlyphFromCache(glyph_t index, QFixed subPixelPosition);
         void clear();
         inline bool useFastGlyphData(glyph_t index, QFixed subPixelPosition) const {
-            return (index < 256 && subPixelPosition == 0);
+            return (index < QT_MAX_FAST_GLYPH_COUNT && subPixelPosition == 0);
         }
         inline Glyph *getGlyph(glyph_t index, QFixed subPixelPosition = 0) const;
         void setGlyph(glyph_t index, QFixed spp, Glyph *glyph);
 
 private:
         mutable QHash<GlyphAndSubPixelPosition, Glyph *> glyph_data; // maps from glyph index to glyph data
-        mutable Glyph *fast_glyph_data[256]; // for fast lookup of glyphs < 256
+        mutable Glyph *fast_glyph_data[QT_MAX_FAST_GLYPH_COUNT]; // for fast lookup of glyphs < QT_MAX_FAST_GLYPH_COUNT
         mutable int fast_glyph_count;
     };
 

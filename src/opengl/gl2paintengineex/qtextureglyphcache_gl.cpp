@@ -42,6 +42,7 @@
 #include "qtextureglyphcache_gl_p.h"
 #include "qpaintengineex_opengl2_p.h"
 #include "private/qglengineshadersource_p.h"
+#include <syslog.h>
 
 #if defined QT_OPENGL_ES_2 && !defined(QT_NO_EGL)
 #include "private/qeglcontext_p.h"
@@ -101,6 +102,26 @@ void QGLTextureGlyphCache::setContext(const QGLContext *context)
     m_h = 0;
 }
 
+static void setPackUnpackAlignment(const char* ctx)
+{
+    qDebug () << "setPackUnpackAlignment" << ctx;
+    syslog(LOG_INFO, ctx);
+
+//#if defined(Q_ASSERT)
+    GLint alignment = 4;
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+    Q_ASSERT(alignment == 4);
+    if (alignment != 4) syslog(LOG_ERR, "GL_UNPACK_ALIGNMENT != 4");
+
+    glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
+    Q_ASSERT(alignment == 4);
+    if (alignment != 4) syslog(LOG_ERR, "GL_PACK_ALIGNMENT != 4");
+//#endif
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+}
+
 void QGLTextureGlyphCache::createTextureData(int width, int height)
 {
     if (ctx == 0) {
@@ -119,6 +140,8 @@ void QGLTextureGlyphCache::createTextureData(int width, int height)
         width = 16;
     if (height < 16)
         height = 16;
+
+    setPackUnpackAlignment(Q_FUNC_INFO);
 
     QGLGlyphTexture *glyphTexture = m_textureResource.value(ctx);
     glGenTextures(1, &glyphTexture->m_texture);
@@ -173,6 +196,8 @@ void QGLTextureGlyphCache::resizeTextureData(int width, int height)
         glDeleteTextures(1, &oldTexture);
         return;
     }
+
+    setPackUnpackAlignment(Q_FUNC_INFO);
 
     // ### the QTextureGlyphCache API needs to be reworked to allow
     // ### resizeTextureData to fail
@@ -325,6 +350,8 @@ void QGLTextureGlyphCache::fillTexture(const Coord &c, glyph_t glyph, QFixed sub
             }
         }
     }
+
+    setPackUnpackAlignment(Q_FUNC_INFO);
 
     glBindTexture(GL_TEXTURE_2D, glyphTexture->m_texture);
     if (mask.format() == QImage::Format_RGB32) {
