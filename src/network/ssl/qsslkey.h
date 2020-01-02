@@ -65,6 +65,8 @@ class Q_NETWORK_EXPORT QSslKey
 {
 public:
     QSslKey();
+    QSslKey(const QString &engine, const QString &key_id,
+            QSsl::KeyType type = QSsl::PrivateKey);
     QSslKey(const QByteArray &encoded, QSsl::KeyAlgorithm algorithm,
             QSsl::EncodingFormat format = QSsl::Pem,
             QSsl::KeyType type = QSsl::PrivateKey,

@@ -88,6 +88,7 @@ public:
         SynchronousRequestAttribute, // internal
 
         User = 1000,
+        BindAddressAttribute, // Tesla SW-206888, here in User to not conflict later
         UserMax = 32767
     };
     enum CacheLoadControl {

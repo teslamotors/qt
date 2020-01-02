@@ -58,6 +58,7 @@
 
 #include <openssl/rsa.h>
 #include <openssl/dsa.h>
+#include <openssl/engine.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -67,6 +68,7 @@ public:
     inline QSslKeyPrivate()
         : rsa(0)
         , dsa(0)
+        , engine(0)
     {
         clear();
     }
@@ -76,6 +78,8 @@ public:
 
     void clear(bool deep = true);
 
+    void loadEngineKey(const QString &engine, const QString &key_id,
+                       bool deepClear = true);
     void decodePem(const QByteArray &pem, const QByteArray &passPhrase,
                    bool deepClear = true);
     QByteArray pemHeader() const;
@@ -88,6 +92,7 @@ public:
     QSsl::KeyAlgorithm algorithm;
     RSA *rsa;
     DSA *dsa;
+    ENGINE *engine;
 
     QAtomicInt ref;
 

@@ -81,6 +81,12 @@
 #include "qtcpsocket.h"
 #include "qhostaddress.h"
 
+// Tesla SW-206888, see below
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
 QT_BEGIN_NAMESPACE
 
 /*!
@@ -119,6 +125,36 @@ QTcpSocket::QTcpSocket(QTcpSocketPrivate &dd, QObject *parent)
     : QAbstractSocket(TcpSocket, dd, parent)
 {
     d_func()->isBuffered = true;
+}
+
+// Tesla SW-206888: Support binding to a particular address.
+bool QTcpSocket::bind(const QHostAddress& addrIn) {
+    sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_addr.s_addr = htonl(addrIn.toIPv4Address());
+    addr.sin_family = AF_INET;
+    addr.sin_port = 0;
+
+    int fd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (fd == -1) {
+        qWarning() << "QTcpSocket::bind: failed to create socket fd";
+        return false;
+    }
+
+    if (0 > ::bind(fd, (sockaddr*)&addr, sizeof(addr)))
+    {
+        ::close(fd);
+        qWarning() << "QTcpSocket::bind: failed";
+        return false;
+    }
+
+    if (!setSocketDescriptor(fd, state())) {
+        ::close(fd);
+        qWarning() << "QTcpSocket::bind: failed to setSocketDescriptor";
+        return false;
+    }
+
+    return true;
 }
 
 QT_END_NAMESPACE

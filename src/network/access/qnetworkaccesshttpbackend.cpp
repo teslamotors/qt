@@ -528,6 +528,12 @@ void QNetworkAccessHttpBackend::postRequest()
         delegate->networkSession = qvariant_cast<QSharedPointer<QNetworkSession> >(v);
 #endif
 
+    // Tesla SW-206888
+    QVariant bindVariant(request().attribute(QNetworkRequest::BindAddressAttribute));
+    if (bindVariant.isValid() && !bindVariant.toString().isEmpty()) {
+        delegate->setProperty("_bind_to", bindVariant);
+    }
+
     // For the synchronous HTTP, this is the normal way the delegate gets deleted
     // For the asynchronous HTTP this is a safety measure, the delegate deletes itself when HTTP is finished
     connect(thread, SIGNAL(finished()), delegate, SLOT(deleteLater()));

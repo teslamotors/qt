@@ -286,6 +286,12 @@ void QHttpThreadDelegate::startRequest()
 
         // cache the QHttpNetworkConnection corresponding to this cache key
         connections.localData()->addEntry(cacheKey, httpConnection);
+
+        // Tesla SW-206888
+        QVariant v(property("_bind_to"));
+        if (!v.isNull()) {
+            httpConnection->setProperty("_bind_to", v);
+        }
     }
 
 

@@ -93,6 +93,13 @@ void QSslKeyPrivate::clear(bool deep)
             q_DSA_free(dsa);
         dsa = 0;
     }
+    if (engine) {
+        if (deep) {
+            q_ENGINE_finish(engine);
+            q_ENGINE_free(engine);
+        }
+        engine = 0;
+    }
 }
 
 /*!
@@ -140,6 +147,76 @@ void QSslKeyPrivate::decodePem(const QByteArray &pem, const QByteArray &passPhra
     }
 
     q_BIO_free(bio);
+}
+
+/*!
+    \internal
+
+    Allocates a new rsa/dsa struct and loads \a key_id from \a engine
+    into it.
+
+    If \a deepClear is true, the rsa/dsa struct is freed if it is was
+    already allocated, otherwise we "leak" memory (which is exactly
+    what we want for copy construction).
+*/
+void QSslKeyPrivate::loadEngineKey(const QString &engine_id, const QString &key_id,
+                                   bool deepClear)
+{
+    if (engine_id.isEmpty())
+        return;
+
+    if (key_id.isEmpty())
+        return;
+
+    clear(deepClear);
+
+    if (!QSslSocket::supportsSsl())
+        return;
+
+    q_ENGINE_load_builtin_engines();
+
+    engine = q_ENGINE_by_id(engine_id.toAscii().constData());
+    if (!engine)
+        return;
+
+    if (!q_ENGINE_init(engine)) {
+        q_ENGINE_free(engine);
+        engine = 0;
+        return;
+    }
+
+    EVP_PKEY *pkey = (type == QSsl::PublicKey)
+        ? q_ENGINE_load_public_key(engine, key_id.toAscii().constData(), NULL, NULL)
+        : q_ENGINE_load_private_key(engine, key_id.toAscii().constData(), NULL, NULL);
+
+    if (!pkey) {
+        q_ENGINE_finish(engine);
+        q_ENGINE_free(engine);
+        engine = 0;
+        return;
+    }
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+    const int keyType = pkey->type;
+#else
+    const int keyType = q_EVP_PKEY_id(pkey);
+#endif
+    switch (keyType) {
+    case EVP_PKEY_DSA:
+        algorithm = QSsl::Dsa;
+        dsa = q_EVP_PKEY_get1_DSA(pkey);
+        if (dsa)
+            isNull = false;
+    case EVP_PKEY_RSA:
+    case EVP_PKEY_RSA2:
+        algorithm = QSsl::Rsa;
+        rsa = q_EVP_PKEY_get1_RSA(pkey);
+        if (rsa)
+            isNull = false;
+        break;
+    }
+
+    q_EVP_PKEY_free(pkey);
 }
 
 /*!
@@ -223,6 +300,20 @@ QByteArray QSslKeyPrivate::derFromPem(const QByteArray &pem) const
     der = der.mid(headerIndex + header.size(), footerIndex - (headerIndex + header.size()));
 
     return QByteArray::fromBase64(der); // ignores newlines
+}
+
+/*!
+    Constructs a QSslKey from \a key_id using \a engine.
+
+    After construction, use isNull() to check if \a key_id contained
+    a valid key for \a engine.
+*/
+QSslKey::QSslKey(const QString &engine, const QString &key_id,
+                 QSsl::KeyType type)
+    : d(new QSslKeyPrivate)
+{
+    d->type = type;
+    d->loadEngineKey(engine, key_id);
 }
 
 /*!
@@ -321,8 +412,20 @@ int QSslKey::length() const
 {
     if (d->isNull)
         return -1;
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     return (d->algorithm == QSsl::Rsa)
            ? q_BN_num_bits(d->rsa->n) : q_BN_num_bits(d->dsa->p);
+#else
+    const BIGNUM *part = NULL;
+
+    if (d->algorithm == QSsl::Rsa)
+        q_RSA_get0_key(d->rsa, &part, NULL, NULL);
+    else
+        q_DSA_get0_pqg(d->dsa, &part, NULL, NULL);
+
+    return q_BN_num_bits(part);
+#endif
 }
 
 /*!
