@@ -665,7 +665,10 @@ bool QGLContext::chooseContext(const QGLContext* shareContext)
       HPUX defines GLX_VERSION_1_3 but does not implement the corresponding functions.
       Specifically glXChooseFBConfig and glXGetVisualFromFBConfig are not implemented.
      */
-    if ((major == 3 && minor >= 2) || major > 3) {
+    // TESLA: we want to use glXCreateContextAttribs even when we're requesting a 2.0
+    // GLX context. This is required for compatibility with RenderDoc.
+    // if ((major == 3 && minor >= 2) || major > 3) {
+    {
         QGLTemporaryContext *tmpContext = 0;
         if (!QGLContext::currentContext())
             tmpContext = new QGLTemporaryContext;
